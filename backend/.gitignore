@@ -1,0 +1,35 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+backend/venv/
+backend/.venv/
+env/
+ENV/
+
+# Database
+*.sqlite3
+*.db
+backend/instance/
+instance/
+
+# Environment variables
+.env
+.env.local
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Frontend backup
+frontend_01/

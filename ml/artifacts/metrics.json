@@ -1,0 +1,66 @@
+{
+  "regression": {
+    "test_mae": 2.9329782270696243,
+    "test_rmse": 4.42314939069853,
+    "test_r2": 0.964458246181734
+  },
+  "classification": {
+    "test_accuracy": 0.9410887397464579,
+    "test_macro_f1": 0.8917062928871046,
+    "classes": [
+      "LOW",
+      "MEDIUM",
+      "HIGH"
+    ],
+    "classification_report": {
+      "LOW": {
+        "precision": 0.8029197080291971,
+        "recall": 0.8943089430894309,
+        "f1-score": 0.8461538461538461,
+        "support": 123.0
+      },
+      "MEDIUM": {
+        "precision": 0.867704280155642,
+        "recall": 0.832089552238806,
+        "f1-score": 0.8495238095238096,
+        "support": 268.0
+      },
+      "HIGH": {
+        "precision": 0.9809926082365364,
+        "recall": 0.9778947368421053,
+        "f1-score": 0.9794412229836584,
+        "support": 950.0
+      },
+      "accuracy": 0.9410887397464579,
+      "macro avg": {
+        "precision": 0.8838721988071252,
+        "recall": 0.901431077390114,
+        "f1-score": 0.8917062928871046,
+        "support": 1341.0
+      },
+      "weighted avg": {
+        "precision": 0.9420185301968776,
+        "recall": 0.9410887397464579,
+        "f1-score": 0.9412516523965545,
+        "support": 1341.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        110,
+        13,
+        0
+      ],
+      [
+        27,
+        223,
+        18
+      ],
+      [
+        0,
+        21,
+        929
+      ]
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "include": [
+    "backend",
+    "tests",
+    "run.py"
+  ],
+  "exclude": [
+    "backend/venv",
+    "backend/instance",
+    "frontend"
+  ],
+  "venvPath": "backend",
+  "venv": "venv",
+  "reportOptionalMemberAccess": "none",
+  "reportOptionalSubscript": "none",
+  "reportCallIssue": "none",
+  "reportOperatorIssue": "none",
+  "reportArgumentType": "none",
+  "reportGeneralTypeIssues": "none",
+  "reportAttributeAccessIssue": "none"
+}

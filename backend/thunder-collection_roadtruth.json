@@ -1,0 +1,171 @@
+{
+  "clientName": "Thunder Client",
+  "collectionName": "RoadTruth Traffic Intelligence API",
+  "collectionId": "roadtruth-full-collection",
+  "dateExported": "2026-10-23",
+  "version": "2.0",
+  "folders": [],
+  "requests": [
+    {
+      "_id": "req-1",
+      "name": "1. Health Check",
+      "method": "GET",
+      "url": "http://127.0.0.1:5000/api/health",
+      "headers": []
+    },
+    {
+      "_id": "req-2",
+      "name": "2. Create Incident (With Baseline Clearance)",
+      "method": "POST",
+      "url": "http://127.0.0.1:5000/api/incidents",
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"incident_type\": \"accident\",\n  \"description\": \"Two-vehicle collision blocking right lane\",\n  \"location_name\": \"MG Road near Trinity Metro\",\n  \"latitude\": 12.9716,\n  \"longitude\": 77.5946,\n  \"reporter_id\": \"commuter_101\"\n}"
+      }
+    },
+    {
+      "_id": "req-3",
+      "name": "3. Verify Incident - Authorized Official (Immediate Verification)",
+      "method": "POST",
+      "url": "http://127.0.0.1:5000/api/incidents/1/verify",
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"verifier_id\": \"dsp_traffic_control\",\n  \"verifier_role\": \"traffic_police\",\n  \"action\": \"confirm\",\n  \"supporting_info\": \"Traffic patrol unit on site. Tow vehicle arriving.\",\n  \"evidence_url\": \"https://traffic.gov.in/evidence/incident-01.jpg\"\n}"
+      }
+    },
+    {
+      "_id": "req-4",
+      "name": "4. Verify Incident - Citizen Confirmation (Consensus Step)",
+      "method": "POST",
+      "url": "http://127.0.0.1:5000/api/incidents/1/verify",
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"verifier_id\": \"witness_driver_42\",\n  \"verifier_role\": \"citizen\",\n  \"action\": \"confirm\",\n  \"supporting_info\": \"Can confirm traffic is backed up 500m.\",\n  \"evidence_url\": \"https://photos.example.com/dashcam-img.jpg\"\n}"
+      }
+    },
+    {
+      "_id": "req-5",
+      "name": "5. Clear / Resolve Incident (Authorized Official)",
+      "method": "POST",
+      "url": "http://127.0.0.1:5000/api/incidents/1/clear",
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"verifier_role\": \"traffic_police\",\n  \"cleared_by\": \"dsp_patil\"\n}"
+      }
+    },
+    {
+      "_id": "req-6",
+      "name": "6. Nearby Incident Alerts (GET Coordinates & Radius)",
+      "method": "GET",
+      "url": "http://127.0.0.1:5000/api/incidents/nearby?latitude=12.9716&longitude=77.5946&radius_km=5.0",
+      "headers": []
+    },
+    {
+      "_id": "req-7",
+      "name": "7. Nearby Incident Alerts (POST JSON)",
+      "method": "POST",
+      "url": "http://127.0.0.1:5000/api/incidents/nearby",
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"latitude\": 12.9716,\n  \"longitude\": 77.5946,\n  \"radius_km\": 5.0,\n  \"include_cleared\": false\n}"
+      }
+    },
+    {
+      "_id": "req-8",
+      "name": "8. Heatmap Data (Leaflet-Ready)",
+      "method": "GET",
+      "url": "http://127.0.0.1:5000/api/incidents/heatmap?status=active",
+      "headers": []
+    },
+    {
+      "_id": "req-9",
+      "name": "9. Historical Incident Hotspots",
+      "method": "GET",
+      "url": "http://127.0.0.1:5000/api/incidents/hotspots",
+      "headers": []
+    },
+    {
+      "_id": "req-10",
+      "name": "10. Comprehensive Traffic Analytics",
+      "method": "GET",
+      "url": "http://127.0.0.1:5000/api/incidents/analytics",
+      "headers": []
+    },
+    {
+      "_id": "req-11",
+      "name": "11. List All Incidents (Filters)",
+      "method": "GET",
+      "url": "http://127.0.0.1:5000/api/incidents?status=pending",
+      "headers": []
+    },
+    {
+      "_id": "req-12",
+      "name": "12. Pre-Flight Duplicate Check",
+      "method": "POST",
+      "url": "http://127.0.0.1:5000/api/incidents/check-duplicates",
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"incident_type\": \"accident\",\n  \"latitude\": 12.9718,\n  \"longitude\": 77.5947,\n  \"radius_km\": 0.5\n}"
+      }
+    },
+    {
+      "_id": "req-13",
+      "name": "13. Alternative Route Suggestions (Risk Scored & Closure Avoiding)",
+      "method": "POST",
+      "url": "http://127.0.0.1:5000/api/routes/alternatives",
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"origin\": {\n    \"latitude\": 12.9716,\n    \"longitude\": 77.5946\n  },\n  \"destination\": {\n    \"latitude\": 12.9352,\n    \"longitude\": 77.6245\n  },\n  \"corridor_buffer_meters\": 200.0\n}"
+      }
+    },
+    {
+      "_id": "req-14",
+      "name": "14. Route-Based Incident Alerts (Corridor Buffer)",
+      "method": "POST",
+      "url": "http://127.0.0.1:5000/api/routes/alerts",
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"route_coordinates\": [\n    [77.5946, 12.9716],\n    [77.6050, 12.9550],\n    [77.6245, 12.9352]\n  ],\n  \"buffer_meters\": 250.0\n}"
+      }
+    },
+    {
+      "_id": "req-15",
+      "name": "15. User Registration (Citizen or Official)",
+      "method": "POST",
+      "url": "http://127.0.0.1:5000/api/auth/register",
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"username\": \"officer_kumar\",\n  \"email\": \"kumar@trafficpolice.gov\",\n  \"password\": \"OfficialSecurePass123\",\n  \"role\": \"traffic_police\",\n  \"official_key\": \"ROADTRUTH_OFFICIAL_AUTH_2026\",\n  \"badge_number\": \"KA-TP-101\",\n  \"agency\": \"Bengaluru City Traffic Police\"\n}"
+      }
+    },
+    {
+      "_id": "req-16",
+      "name": "16. User Login (Obtain Bearer Token)",
+      "method": "POST",
+      "url": "http://127.0.0.1:5000/api/auth/login",
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"username\": \"officer_kumar\",\n  \"password\": \"OfficialSecurePass123\"\n}"
+      }
+    },
+    {
+      "_id": "req-17",
+      "name": "17. Get Authenticated User Profile",
+      "method": "GET",
+      "url": "http://127.0.0.1:5000/api/auth/me",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer YOUR_JWT_OR_AUTH_TOKEN_HERE" }
+      ]
+    }
+  ]
+}

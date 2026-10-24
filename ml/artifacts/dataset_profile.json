@@ -1,0 +1,29 @@
+{
+  "rows": 8936,
+  "columns": 16,
+  "date_min": "2022-01-01",
+  "date_max": "2024-08-09",
+  "areas": [
+    "Electronic City",
+    "Hebbal",
+    "Indiranagar",
+    "Jayanagar",
+    "Koramangala",
+    "M.G. Road",
+    "Whitefield",
+    "Yeshwanthpur"
+  ],
+  "roads_count": 16,
+  "missing_values_total": 0,
+  "duplicate_rows": 0,
+  "target": "Congestion Level",
+  "target_range": [
+    5.160279008043586,
+    100.0
+  ],
+  "classification_thresholds": {
+    "LOW": "<40",
+    "MEDIUM": "40-<70",
+    "HIGH": ">=70"
+  }
+}
