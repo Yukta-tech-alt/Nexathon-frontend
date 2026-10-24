@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useRouteWise } from '../../context/RouteWiseContext';
+import { authApi } from '../../services/api';
 import { 
   Activity, 
   MapPin, 
@@ -27,6 +28,11 @@ export default function AuthorityLayout() {
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+  const handleLogout = () => {
+    authApi.logout();
+    navigate('/', { replace: true });
+  };
 
   const navItems = [
     { label: 'Overview', path: '/authority', icon: Activity, end: true },
@@ -99,18 +105,19 @@ export default function AuthorityLayout() {
           <div className="flex items-center justify-between px-1 text-xs text-slate-400">
             <button
               onClick={toggleTheme}
-              className="p-1.5 rounded-lg hover:bg-slate-900 text-slate-400 hover:text-white"
+              className="p-1.5 rounded-lg hover:bg-slate-900 text-slate-400 hover:text-white cursor-pointer"
               title="Toggle Theme"
             >
               {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-amber-400" />}
             </button>
 
             <button
-              onClick={() => navigate('/select-role')}
-              className="text-[11px] text-slate-400 hover:text-amber-400 flex items-center gap-1 font-semibold"
+              onClick={handleLogout}
+              className="text-[11px] text-slate-400 hover:text-rose-400 flex items-center gap-1 font-semibold cursor-pointer"
+              title="Sign out of RouteWise AI"
             >
               <LogOut className="w-3.5 h-3.5" />
-              <span>Switch Portal</span>
+              <span>Sign Out</span>
             </button>
           </div>
         </div>
@@ -145,10 +152,11 @@ export default function AuthorityLayout() {
             </Link>
           ))}
           <button
-            onClick={() => { setIsMobileMenuOpen(false); navigate('/select-role'); }}
-            className="w-full text-left p-2.5 text-xs text-amber-400 font-bold"
+            onClick={() => { setIsMobileMenuOpen(false); handleLogout(); }}
+            className="w-full text-left p-2.5 text-xs text-rose-400 font-bold flex items-center gap-2 cursor-pointer"
           >
-            Switch Role Experience →
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign Out</span>
           </button>
         </div>
       )}

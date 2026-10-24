@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useRouteWise } from '../../context/RouteWiseContext';
+import { routesApi, getAuthToken, getStoredUser } from '../../services/api';
 import TrafficMap from '../../components/maps/TrafficMap';
 import MapLocationPicker from '../../components/maps/MapLocationPicker';
 import { 
@@ -12,7 +13,8 @@ import {
   ArrowUpDown, 
   Clock, 
   Search,
-  Check
+  Check,
+  Cpu
 } from 'lucide-react';
 
 const POPULAR_LOCATIONS = [
@@ -35,6 +37,21 @@ export default function PassengerRoutePlanner() {
   const [searchParams] = useSearchParams();
   const { routes, selectedRoute, setSelectedRoute, startJourney, incidents, showToast } = useRouteWise();
 
+  const token = getAuthToken();
+  const user = getStoredUser();
+
+  // Strict Authentication Guard: User cannot see or enter the map without login
+  useEffect(() => {
+    if (!token || !user) {
+      const redirectUrl = encodeURIComponent(window.location.pathname + window.location.search);
+      navigate(`/login?redirect=${redirectUrl}`, { replace: true });
+    }
+  }, [token, user, navigate]);
+
+  if (!token || !user) {
+    return null;
+  }
+
   // Location text states
   const [fromLocation, setFromLocation] = useState('Surathkal NITK Corridor, Mangaluru');
   const [toLocation, setToLocation] = useState(
@@ -52,8 +69,10 @@ export default function PassengerRoutePlanner() {
   // Map Picker Modal state
   const [mapPickerMode, setMapPickerMode] = useState(null); // 'from' | 'destination' | null
 
-  // Route calculation feedback state
+  // Route calculation feedback & live route alternatives state
   const [hasSearched, setHasSearched] = useState(true);
+  const [displayedRoutes, setDisplayedRoutes] = useState(routes);
+  const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
 
   const fromRef = useRef(null);
   const toRef = useRef(null);
@@ -124,32 +143,47 @@ export default function PassengerRoutePlanner() {
     showToast('Locations Swapped', '', 'info');
   };
 
-  // Plan Route Submission
+  // Plan Route Submission with Smart AI Alternatives
   const isPlanDisabled = !fromLocation.trim() || !toLocation.trim();
 
-  const handlePlanRoute = (e) => {
+  const handlePlanRoute = async (e) => {
     e.preventDefault();
     if (isPlanDisabled) return;
 
     setHasSearched(true);
-    // Update active route labels and coordinates
-    if (selectedRoute) {
-      const updatedRoute = {
-        ...selectedRoute,
-        origin: fromLocation,
-        destination: toLocation
-      };
-      if (fromCoords && toCoords && selectedRoute.coordinates) {
-        // Adjust endpoints for the polyline
-        const coordsCopy = [...selectedRoute.coordinates];
-        coordsCopy[0] = fromCoords;
-        coordsCopy[coordsCopy.length - 1] = toCoords;
-        updatedRoute.coordinates = coordsCopy;
-      }
-      setSelectedRoute(updatedRoute);
-    }
+    setIsCalculatingRoute(true);
 
-    showToast('Route Calculated', `Navigating ${fromLocation.split(',')[0]} → ${toLocation.split(',')[0]}`, 'success');
+    try {
+      const res = await routesApi.getAlternatives({
+        origin: { latitude: fromCoords[0], longitude: fromCoords[1] },
+        destination: { latitude: toCoords[0], longitude: toCoords[1] },
+        originLabel: fromLocation,
+        destLabel: toLocation
+      });
+
+      if (res?.normalizedRoutes && res.normalizedRoutes.length > 0) {
+        setDisplayedRoutes(res.normalizedRoutes);
+        const recommended = res.normalizedRoutes.find(r => r.badge === 'Recommended') || res.normalizedRoutes[0];
+        setSelectedRoute(recommended);
+        showToast('AI Route Recommendation Ready', recommended.recommendationReason || 'Optimal alternative calculated.', 'success');
+      } else {
+        // Fallback update for active route coordinates
+        if (selectedRoute) {
+          const updatedRoute = { ...selectedRoute, origin: fromLocation, destination: toLocation };
+          setSelectedRoute(updatedRoute);
+        }
+        showToast('Route Calculated', `Navigating ${fromLocation.split(',')[0]} → ${toLocation.split(',')[0]}`, 'success');
+      }
+    } catch (err) {
+      // Graceful offline fallback
+      if (selectedRoute) {
+        const updatedRoute = { ...selectedRoute, origin: fromLocation, destination: toLocation };
+        setSelectedRoute(updatedRoute);
+      }
+      showToast('Route Calculated', `Navigating ${fromLocation.split(',')[0]} → ${toLocation.split(',')[0]}`, 'info');
+    } finally {
+      setIsCalculatingRoute(false);
+    }
   };
 
   const handleSelectRouteOption = (r) => {
@@ -168,6 +202,12 @@ export default function PassengerRoutePlanner() {
   };
 
   const handleStartTrip = (r) => {
+    const token = getAuthToken();
+    if (!token) {
+      showToast('Sign In Required', 'Please sign in to save trip history and activate real-time telemetry.', 'info');
+      navigate(`/login?role=passenger&redirect=${encodeURIComponent('/passenger/journeys')}`);
+      return;
+    }
     startJourney(r, fromLocation, toLocation);
     navigate('/passenger/journeys');
   };
@@ -328,25 +368,30 @@ export default function PassengerRoutePlanner() {
             <div className="pt-1">
               <button
                 type="submit"
-                disabled={isPlanDisabled}
+                disabled={isPlanDisabled || isCalculatingRoute}
                 className={`w-full py-2.5 font-bold text-xs rounded-xl transition-all shadow flex items-center justify-center gap-1.5 ${
-                  isPlanDisabled
+                  isPlanDisabled || isCalculatingRoute
                     ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-800'
                     : 'bg-cyan-600 hover:bg-cyan-500 text-slate-950 shadow-cyan-600/20 active:scale-98'
                 }`}
               >
                 <Route className="w-3.5 h-3.5" />
-                <span>{isPlanDisabled ? 'Select Both Locations to Plan' : 'Plan Route'}</span>
+                <span>
+                  {isPlanDisabled 
+                    ? 'Select Both Locations to Plan' 
+                    : (isCalculatingRoute ? 'Calculating AI Recommendation...' : 'Plan Route')}
+                </span>
               </button>
             </div>
 
           </form>
 
-          {/* 3 Route Options */}
+          {/* Smart Route Alternatives */}
           {hasSearched && (
             <div className="space-y-2.5">
-              {routes.map((r) => {
+              {displayedRoutes.map((r) => {
                 const isSelected = selectedRoute?.id === r.id;
+                const isRecommended = r.badge === 'Recommended';
 
                 return (
                   <div
@@ -358,17 +403,40 @@ export default function PassengerRoutePlanner() {
                         : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-sm font-bold text-white capitalize">
-                          {r.tag || r.name}
-                        </h3>
-                        <p className="text-xs text-slate-400 font-mono mt-0.5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-bold text-white capitalize">
+                            {r.tag || r.name}
+                          </h3>
+                          {r.badge && (
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              isRecommended 
+                                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' 
+                                : 'bg-slate-800 text-slate-400 border border-slate-700'
+                            }`}>
+                              {r.badge}
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-xs text-slate-400 font-mono">
                           {r.currentDurationMin} min · {r.distanceKm} km
+                          {r.predictedCongestionScore !== undefined && r.predictedCongestionScore !== null && (
+                            <span className="ml-2 font-sans font-semibold text-cyan-400">
+                              · AI Congestion: {r.predictedCongestionLevel || 'LOW'} ({r.predictedCongestionScore}/100)
+                            </span>
+                          )}
                         </p>
+
+                        {r.recommendationReason && (
+                          <p className="text-[11px] text-slate-400 pt-0.5 leading-relaxed">
+                            {r.recommendationReason}
+                          </p>
+                        )}
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-shrink-0 pt-0.5">
                         <button
                           type="button"
                           onClick={(e) => {

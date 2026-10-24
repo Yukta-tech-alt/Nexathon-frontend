@@ -1,11 +1,33 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useRouteWise } from '../../context/RouteWiseContext';
-import { Navigation, Sun, Moon, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { getAuthToken, getStoredUser, authApi } from '../../services/api';
+import { Navigation, Sun, Moon, ArrowRight, ShieldCheck, Sparkles, LogOut, Compass } from 'lucide-react';
 
 export default function PublicNavbar() {
   const location = useLocation();
-  const { theme, toggleTheme } = useRouteWise();
+  const navigate = useNavigate();
+  const { theme, toggleTheme, showToast } = useRouteWise();
+
+  const token = getAuthToken();
+  const user = getStoredUser();
+
+  const handleLogout = () => {
+    authApi.logout();
+    showToast('Signed Out', 'You have been safely signed out.', 'info');
+    navigate('/', { replace: true });
+  };
+
+  const userRole = (user?.role || '').toLowerCase();
+  const portalPath = 
+    userRole === 'employer' ? '/employer' :
+    (userRole === 'traffic_authority' || userRole === 'traffic_police' || userRole === 'admin') ? '/authority' :
+    '/passenger';
+
+  const portalLabel = 
+    userRole === 'employer' ? 'Employer Portal' :
+    (userRole === 'traffic_authority' || userRole === 'traffic_police' || userRole === 'admin') ? 'Authority Portal' :
+    'Passenger Portal';
 
   const navLinks = [
     { label: 'Home', path: '/' },
@@ -56,20 +78,42 @@ export default function PublicNavbar() {
             {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-cyan-400" />}
           </button>
 
-          <Link
-            to="/login"
-            className="hidden sm:inline-block px-4 py-2 text-xs font-bold text-slate-300 hover:text-white transition-colors"
-          >
-            Login
-          </Link>
+          {token && user ? (
+            <div className="flex items-center gap-2">
+              <Link
+                to={portalPath}
+                className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-teal-500 hover:from-cyan-500 hover:to-teal-400 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-cyan-500/20 transition-all flex items-center gap-1.5"
+              >
+                <Compass className="w-3.5 h-3.5" />
+                <span>{portalLabel}</span>
+              </Link>
 
-          <Link
-            to="/select-role"
-            className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-teal-500 hover:from-cyan-500 hover:to-teal-400 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-cyan-500/20 transition-all flex items-center gap-1.5"
-          >
-            <span>Get Started</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
+              <button
+                onClick={handleLogout}
+                title="Sign out of RouteWise AI"
+                className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-slate-900 border border-slate-800 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <>
+              <Link
+                to="/login"
+                className="hidden sm:inline-block px-4 py-2 text-xs font-bold text-slate-300 hover:text-white transition-colors"
+              >
+                Login
+              </Link>
+
+              <Link
+                to="/select-role"
+                className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-teal-500 hover:from-cyan-500 hover:to-teal-400 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-cyan-500/20 transition-all flex items-center gap-1.5"
+              >
+                <span>Get Started</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </header>

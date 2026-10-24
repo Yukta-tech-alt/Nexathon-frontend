@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRouteWise } from '../../context/RouteWiseContext';
+import { getAuthToken, getStoredUser } from '../../services/api';
 import TrafficMap from '../../components/maps/TrafficMap';
+import CommuteIntelligenceCard from '../../components/passenger/CommuteIntelligenceCard';
 import { 
   Search, 
   MapPin, 
@@ -21,6 +23,21 @@ import {
 export default function PassengerDashboard() {
   const navigate = useNavigate();
   const { incidents, selectedRoute } = useRouteWise();
+
+  const token = getAuthToken();
+  const user = getStoredUser();
+
+  // Strict Authentication Guard: User cannot see or enter the map without login
+  useEffect(() => {
+    if (!token || !user) {
+      const redirectUrl = encodeURIComponent(window.location.pathname + window.location.search);
+      navigate(`/login?redirect=${redirectUrl}`, { replace: true });
+    }
+  }, [token, user, navigate]);
+
+  if (!token || !user) {
+    return null;
+  }
 
   const [destinationSearch, setDestinationSearch] = useState('');
   const [selectedIncident, setSelectedIncident] = useState(null);
@@ -110,6 +127,9 @@ export default function PassengerDashboard() {
               </span>
             </div>
           </div>
+
+          {/* Machine Learning Telemetry: Bangalore Traffic Pulse XGBoost Regressor */}
+          <CommuteIntelligenceCard selectedRoute={selectedRoute} />
         </div>
 
         {/* Right Side: Traffic Alerts Feed */}

@@ -5,6 +5,7 @@ import {
   SEED_ROUTES, 
   SEED_JOURNEYS 
 } from '../data/dataTemplates';
+import { incidentsApi, emergencyApi, getStoredUser } from '../services/api';
 
 const RouteWiseContext = createContext(null);
 
@@ -55,7 +56,7 @@ export const RouteWiseProvider = ({ children }) => {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
-  // 4. Incidents State (persisted, user-editable)
+  // 4. Incidents State (persisted, user-editable, synchronized with real Flask backend)
   const [incidents, setIncidents] = useState(() => {
     const saved = localStorage.getItem('routewise_incidents');
     if (saved) {
@@ -68,9 +69,26 @@ export const RouteWiseProvider = ({ children }) => {
     localStorage.setItem('routewise_incidents', JSON.stringify(incidents));
   }, [incidents]);
 
-  const addIncident = (data) => {
+  // Sync initial live incidents from real backend on mount
+  useEffect(() => {
+    let isMounted = true;
+    incidentsApi.getAll()
+      .then(liveList => {
+        if (isMounted && Array.isArray(liveList) && liveList.length > 0) {
+          setIncidents(liveList);
+        }
+      })
+      .catch(err => {
+        // Safe offline fallback to local cache
+        console.warn("Backend incidents fetch note:", err);
+      });
+    return () => { isMounted = false; };
+  }, []);
+
+  const addIncident = async (data) => {
+    const tempId = `inc-${Date.now().toString().slice(-4)}`;
     const newInc = {
-      id: `inc-${Date.now().toString().slice(-4)}`,
+      id: tempId,
       title: data.title || `${(data.category || 'hazard').toUpperCase()} Reported`,
       category: data.category || 'other',
       severity: data.severity || 'moderate',
@@ -99,10 +117,22 @@ export const RouteWiseProvider = ({ children }) => {
 
     setIncidents(prev => [newInc, ...prev]);
     showToast('Report Published', 'Incident logged into RouteWise verification workflow.', 'success');
+
+    // Persist asynchronously to real Flask backend SQLite database
+    try {
+      const user = getStoredUser();
+      const backendSaved = await incidentsApi.create(data, user);
+      if (backendSaved && backendSaved.id) {
+        setIncidents(prev => prev.map(inc => inc.id === tempId ? backendSaved : inc));
+      }
+    } catch (err) {
+      console.warn("Backend incident creation note:", err);
+    }
+
     return newInc;
   };
 
-  const confirmIncident = (id) => {
+  const confirmIncident = async (id) => {
     setIncidents(prev => prev.map(inc => {
       if (inc.id === id) {
         const newCount = (inc.confirmationCount || 1) + 1;
@@ -120,11 +150,41 @@ export const RouteWiseProvider = ({ children }) => {
       return inc;
     }));
     showToast('Incident Confirmed', 'Your confirmation corroborated this road problem.', 'success');
+
+    // Persist verification to real backend
+    try {
+      const user = getStoredUser();
+      const numId = Number(id);
+      if (!isNaN(numId)) {
+        await incidentsApi.verify(numId, {
+          action: 'confirm',
+          supporting_info: 'Confirmed by community commuter',
+          verifier_role: user?.role || 'citizen',
+          verifier_id: user?.username || null
+        });
+      }
+    } catch (err) {
+      console.warn("Backend verification note:", err);
+    }
   };
 
-  const resolveIncident = (id) => {
+  const resolveIncident = async (id) => {
     setIncidents(prev => prev.map(inc => inc.id === id ? { ...inc, status: 'cleared' } : inc));
     showToast('Incident Cleared', 'Marked resolved on the traffic grid.', 'info');
+
+    // Persist clearance to real backend
+    try {
+      const user = getStoredUser();
+      const numId = Number(id);
+      if (!isNaN(numId)) {
+        await incidentsApi.clear(numId, {
+          cleared_by: user?.username || 'Traffic Authority Operator',
+          verifier_role: user?.role || 'traffic_authority'
+        });
+      }
+    } catch (err) {
+      console.warn("Backend clearance note:", err);
+    }
   };
 
   const deleteIncident = (id) => {
@@ -336,13 +396,36 @@ export const RouteWiseProvider = ({ children }) => {
     timestamp: sosActive ? new Date().toISOString() : null
   };
 
-  const triggerSOS = () => {
+  const triggerSOS = async () => {
     setSosActive(true);
-    showToast('DEMO SOS ACTIVATED', 'Simulated emergency state active. Cancel if accidental.', 'warning');
+    showToast('EMERGENCY SOS BROADCAST', 'Emergency SOS beacon activated on the network.', 'warning');
+
+    try {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            await emergencyApi.sendSOS({
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+              description: 'Emergency SOS beacon triggered by mobile commuter'
+            });
+          },
+          async () => {
+            await emergencyApi.sendSOS({
+              latitude: 12.9056,
+              longitude: 74.8384,
+              description: 'Emergency SOS beacon triggered by mobile commuter'
+            });
+          }
+        );
+      }
+    } catch (err) {
+      console.warn("Emergency SOS dispatch notice:", err);
+    }
   };
   const cancelSOS = () => {
     setSosActive(false);
-    showToast('SOS Stand Down', 'Simulated emergency broadcast safely cancelled.', 'info');
+    showToast('SOS Stand Down', 'Emergency broadcast safely cancelled.', 'info');
   };
 
   // Emergency Contacts (ICE)
